@@ -13,6 +13,12 @@
 | Test-set use / `src/evaluate.py` | This surface is protected rather than currently leaking: training uses train/validation only, and evaluation requires explicit human Run selection plus FINISHED/status, experiment, size, and data-identity checks. | Preserve these checks and add a test that evaluation never runs while candidate training or hyperparameter selection is ongoing. |
 | Dataset / local environment | Raw and processed data are not currently restored; only the three archive ZIPs and `.gitkeep` files exist under `data/`, `models/`, and `reports/`. | Acquire/extract data, pass the quality gate, and run PREPARE before training. Use the lock file and `.venv` for environment replay. |
 
+## Python environment
+
+- `pyproject.toml` declares the project metadata, supported Python range (`>=3.11,<3.13`), runtime dependencies, development dependencies, and the CPU-only PyTorch package index. It is the human-maintained dependency specification.
+- `uv.lock` records the resolved dependency graph and exact package versions for reproducible installs. Recreate the environment with `uv sync --locked` rather than changing dependencies ad hoc.
+- `.venv/` is the project-local virtual environment containing the installed Python executable and packages. It isolates this project from system Python and other projects.
+
 ## Engineering checkpoint 1
 
 **Why is a working `model.pt` insufficient evidence that an experiment is reproducible?**
