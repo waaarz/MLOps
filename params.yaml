@@ -1,0 +1,27 @@
+data:
+  image_size: 96
+
+train:
+  batch_size: 32
+  epochs: 4
+  learning_rate: 0.001
+  dropout: 0.30
+  random_state: 42
+
+augmentation:
+  enabled: false
+  horizontal_flip: 0.50
+  rotation_degrees: 10
+
+evaluation:
+  batch_size: 64
+
+compute:
+  device: "auto"   # auto | cpu | cuda
+
+tracking:
+  uri: "http://127.0.0.1:5000"
+  experiment: "bean-image-classification"
+
+selection:
+  run_id: ""

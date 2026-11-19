@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+.dataset-cache/
+/dataset-archives/
+mlflow.db
+mlartifacts/
+mlruns/
+
+# DVC-managed large/generated content
+data/raw/
+data/processed/
+models/*.pt
+
+# SQLite sidecars and local logs
+mlflow.db-*
+*.log
