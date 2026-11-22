@@ -153,3 +153,43 @@ Stage 'train' didn't change, skipping
 ```
 
 `reports/data_quality.json` stayed byte-identical (`cmp`), so PREPARE and TRAIN were skipped. The comment stays in place.
+
+### 6.4 Run B - learning rate 0.0003
+
+`params.yaml` changed to `train.learning_rate: 0.0003` and committed alone, then `uv run --locked dvc repro train`.
+
+**Run B MLflow Run ID: `3d40acc0260b4c7aa5f24cf5b2b2dc89`.** Final epoch: val_acc 0.6165, val_macro_f1 0.6091, val_loss 0.8927 (epoch-1 macro-F1 was only 0.4723).
+
+Observed DVC behaviour (all checks use `dvc repro train`, so EVALUATE was never started):
+
+| Check | VALIDATE | PREPARE | TRAIN | EVALUATE |
+|---|---|---|---|---|
+| 1. Rerun, nothing changed | REUSED | REUSED | REUSED | NOT RUN |
+| 2. Comment in `src/validate_data.py` | RERUN | REUSED | REUSED | NOT RUN |
+| 3. `train.learning_rate` 0.001 -> 0.0003 | REUSED | REUSED | RERUN | NOT RUN |
+
+Terminal lines:
+
+```
+# Check 1
+Stage 'validate' didn't change, skipping
+Stage 'prepare' didn't change, skipping
+Stage 'train' didn't change, skipping
+Data and pipelines are up to date.
+
+# Check 2
+Running stage 'validate':
+> uv run --locked python -m src.validate_data
+Stage 'prepare' didn't change, skipping
+Stage 'train' didn't change, skipping
+
+# Check 3
+Stage 'validate' didn't change, skipping
+Stage 'prepare' didn't change, skipping
+Running stage 'train':
+> uv run --locked python -m src.train
+```
+
+**Comparison with the predictions (6.1).** Setting change: VALIDATE REUSED, PREPARE REUSED, TRAIN RERUN, as predicted. File edit in `validate_data.py`: VALIDATE RERUN, PREPARE REUSED (the report hash was unchanged), TRAIN REUSED, as predicted. README row and `image_size` row were not executed (predictions only). For EVALUATE the predictions said REUSED / NEEDS UPDATE, whereas the table says NOT RUN: that is only because `dvc repro train` never touches EVALUATE; with a full `dvc repro`, DVC would also have judged it REUSED for check 3 (no dependency changed). No difference in substance.
+
+**Learning-rate expectation vs result.** Predicted: slower convergence, higher final val loss, lower or equal accuracy/F1. Observed: B has val_loss 0.8927 vs 0.8324, accuracy 0.6165 vs 0.6391 and macro-F1 0.6091 vs 0.6254, so the prediction is supported (the small step size is simply too small for only 4 epochs); the gap is small though.

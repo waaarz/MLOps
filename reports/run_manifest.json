@@ -9,7 +9,7 @@
     "dropout": 0.3,
     "epochs": 4,
     "image_size": 96,
-    "learning_rate": 0.001
+    "learning_rate": 0.0003
   },
   "data": {
     "training_data_identity": "8fa943ff6c17a3c874d2b152e9d7980602a5cd50c0d8156625bd00590a3d8c6c"
@@ -28,16 +28,17 @@
   },
   "execution": {
     "device": "cpu",
-    "mlflow_run_id": "15ee55bab76c47a2821a86e42b1fb55f",
+    "mlflow_run_id": "3d40acc0260b4c7aa5f24cf5b2b2dc89",
     "random_state": 42
   },
   "git": {
     "changed_files": [],
-    "commit_sha": "758d90e3b87330cd45dc6abfbf1e0b0a575d507f",
+    "commit_sha": "e1fa8df878e32a65f01402a0e448fe377c744c4c",
     "dirty": false,
     "ignored_pipeline_outputs": [
-      "dvc.lock",
-      "reports/data_summary.json"
+      "reports/run_manifest.json",
+      "reports/train_summary.json",
+      "reports/training_curves.png"
     ],
     "working_tree": "clean"
   }
