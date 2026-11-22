@@ -76,3 +76,15 @@ Answers to the design questions:
 - **Which files are metrics?** `reports/train_summary.json` (TRAIN) and `reports/test_metrics.json` (EVALUATE). Small `reports/` files use `cache: false` so Git stores them; processed images, manifests and `models/model.pt` stay in the DVC cache.
 - Code dependencies include indirect imports: EVALUATE and TRAIN list `src/data.py` and `src/reproducibility.py` (imported through the data loader), `src/provenance.py` and `src/model.py`. `uv.lock` + `pyproject.toml` are dependencies of every stage because they define the Python environment. Dependencies point to `data/raw`, never to `data/raw.dvc`.
 - Processed data is split into `train/`, `validation/`, `test/`, `manifests/` outputs so TRAIN depends only on `train`, `validation` and the two matching CSVs, while EVALUATE depends on `test` and the manifests.
+
+## Milestone 5 - Provenance and MLflow logging
+
+- `src/provenance.py`: `build_run_manifest()` collects the Git commit SHA and clean/dirty flag (`git rev-parse HEAD`, `git status --porcelain` through `subprocess`; explicit `"unavailable"` if git fails). Changes that are only pipeline outputs (`reports/`, `models/`, `data/processed/`, `dvc.lock`) are listed under `ignored_pipeline_outputs` and do not set `dirty`: DVC deletes the Git-tracked outputs of a stage right before running it, so otherwise every Run would look dirty, `training_data_identity`, OS/platform, Python, torch, torchvision, DVC and MLflow versions (`platform`, `importlib.metadata`), CUDA availability/runtime, device, seed, image size, batch size, epochs, learning rate, dropout, augmentation settings and the MLflow Run ID.
+- `src/train.py`, in the required order: one Run per execution in `bean-image-classification`; `write_run_manifest()` called first (before any TRAIN output exists); `training_data_identity` read from the manifest; the 11 required parameters logged; `train.csv` logged as MLflow Dataset input (`name=bean-training`, `context=training`, `targets=label`); `train_loss`, `val_loss`, `val_accuracy`, `val_macro_f1` logged with `step=epoch`; `training_seconds` logged; the three artifacts (`training_curves.png`, `train_summary.json`, `run_manifest.json`) logged; model exported on CPU in eval mode with an input example from the **validation** loader, an inferred signature (float32 NCHW input -> logits) and `metadata={class_names, image_size}` as `bean-cnn` (`serialization_format="pickle"`, `code_paths=["src"]`). The test set is never touched by TRAIN.
+- `uv run --locked pytest -q` -> `19 passed`.
+
+**Engineering checkpoint 4**
+
+- **Git** records the exact code, configuration (`params.yaml`, `dvc.yaml`) and their history - identified by a commit SHA.
+- **DVC** records which data and intermediate files (by content hash in `dvc.lock`/`*.dvc`) and which stage dependencies/parameters produced which outputs, and can rebuild or skip stages accordingly.
+- **MLflow** records what happened inside one training Run: parameters, per-epoch metrics, timing, artifacts, the dataset input, and the logged model with its signature - plus the run manifest linking back to the Git SHA and data identity.
