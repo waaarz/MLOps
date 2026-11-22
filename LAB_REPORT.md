@@ -193,3 +193,11 @@ Running stage 'train':
 **Comparison with the predictions (6.1).** Setting change: VALIDATE REUSED, PREPARE REUSED, TRAIN RERUN, as predicted. File edit in `validate_data.py`: VALIDATE RERUN, PREPARE REUSED (the report hash was unchanged), TRAIN REUSED, as predicted. README row and `image_size` row were not executed (predictions only). For EVALUATE the predictions said REUSED / NEEDS UPDATE, whereas the table says NOT RUN: that is only because `dvc repro train` never touches EVALUATE; with a full `dvc repro`, DVC would also have judged it REUSED for check 3 (no dependency changed). No difference in substance.
 
 **Learning-rate expectation vs result.** Predicted: slower convergence, higher final val loss, lower or equal accuracy/F1. Observed: B has val_loss 0.8927 vs 0.8324, accuracy 0.6165 vs 0.6391 and macro-F1 0.6091 vs 0.6254, so the prediction is supported (the small step size is simply too small for only 4 epochs); the gap is small though.
+
+## Milestone 7 - Three controlled runs
+
+### 7.1 Run C setup
+
+`train.learning_rate` was put back to 0.001 (Run A's value). **Exactly one change versus A: `train.batch_size` 32 -> 16.**
+
+Expectation (written before training): with batch size 16 there are twice as many optimizer updates per epoch (about 65 instead of 33), so within a fixed budget of 4 epochs the model should converge faster. I expect a lower final validation loss and a higher macro-F1 than Run A, at the cost of a slightly longer training time (smaller batches are less efficient on CPU) and noisier curves. I do not expect a large gap with a single seed and 133 validation images.
