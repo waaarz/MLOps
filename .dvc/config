@@ -1,0 +1,4 @@
+[core]
+    remote = lab-data
+['remote "lab-data"']
+    url = ../../ai53-phase1-dvc-storage

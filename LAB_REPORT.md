@@ -39,3 +39,15 @@ What was fixed in `src/reproducibility.py`:
 
 **Engineering checkpoint 2 - does `random_state=42` guarantee bit-for-bit identical results everywhere?**
 No. A seed only fixes the pseudo-random streams. Results can still differ across hardware (CPU vs GPU, different CPU instruction sets / BLAS or oneDNN kernels), across library versions (PyTorch, CUDA, cuDNN), across operating systems, and because some GPU kernels are non-deterministic (atomic adds) or floating-point sums are not associative when the order of the operations changes (threads, batch size). So a seed gives *repeatability on the same stack*, and the stack therefore has to be recorded too (`uv.lock`, run manifest).
+
+## Milestone 2 - Extract and track the images
+
+- Option A (included archives): `download_dataset.py --archive-dir dataset-archives` verified the three SHA-256 checksums and extracted the images into `data/raw/`.
+- `check_dataset.py`: train 1034 (345 / 348 / 341), validation 133 (44 / 45 / 44), test 128 (43 / 43 / 42) - all counts match the course archives.
+- `dvc init`, `dvc add data/raw`, `dvc remote add -d lab-data ../ai53-phase1-dvc-storage`. `data/raw.dvc` is the small pointer Git tracks (directory hash `2b62d5a2...dir`, 179.9 MB).
+
+**Engineering checkpoint 3**
+
+- The **Git remote** (GitHub) stores the code, configuration, history and the small pointer files (`dvc.yaml`, `dvc.lock`, `data/raw.dvc`) - not the heavy data.
+- The **DVC remote** (`lab-data`, the folder `../ai53-phase1-dvc-storage`) stores the actual content of the DVC-tracked files (raw images, and later processed data and model files), addressed by content hash.
+- `git push` does **not** transfer the DVC-managed raw images; they are ignored by Git, and only `dvc push` sends them to the DVC remote.
