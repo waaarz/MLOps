@@ -108,3 +108,9 @@ Assumption: all outputs are up to date, one change at a time, `selection.run_id`
 - *Setting change (`data.image_size`)*: `prepare` and `train` and `evaluate` list it. PREPARE resizes the images to the new size, so its outputs change and TRAIN/EVALUATE inputs (`data/processed/...`) change as well. For EVALUATE, DVC will rerun, but the selected Run was trained at the old size, so the saved test results would no longer match and the evaluator would reject the Run -> NEEDS UPDATE (a new Run and a new `selection.run_id` are needed). VALIDATE does not read this setting -> REUSED.
 - *File edit (`src/validate_data.py`)*: it is a dependency of `validate` only, so VALIDATE reruns. It regenerates a byte-identical `reports/data_quality.json`; since this is PREPARE's only changed-candidate input and its hash is unchanged (and `data/raw` is unchanged), PREPARE, and therefore TRAIN and EVALUATE, are REUSED.
 - *File edit (`README.md`)*: it is not a dependency of any stage, so nothing reruns.
+
+### 6.3 Decisions made before training
+
+- **Primary validation metric:** `val_macro_f1` at the last epoch (the logged model is the last-epoch model).
+- **Tie-break rule (Milestone 7/8):** if two Runs differ by less than 0.005 macro-F1, choose the one with the lower final `val_loss`; if still tied, the higher `val_accuracy`; then the shorter `training_seconds`.
+- **Expectation for a lower learning rate (0.0003 vs 0.001):** with only 4 epochs, Adam with a 3x smaller step should converge more slowly, so Run B should have a *higher* final validation loss and a *lower* (or at best equal) validation accuracy / macro-F1 than Run A. Training time should be about the same, since only the step size changes.
