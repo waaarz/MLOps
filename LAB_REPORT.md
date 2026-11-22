@@ -114,3 +114,42 @@ Assumption: all outputs are up to date, one change at a time, `selection.run_id`
 - **Primary validation metric:** `val_macro_f1` at the last epoch (the logged model is the last-epoch model).
 - **Tie-break rule (Milestone 7/8):** if two Runs differ by less than 0.005 macro-F1, choose the one with the lower final `val_loss`; if still tied, the higher `val_accuracy`; then the shorter `training_seconds`.
 - **Expectation for a lower learning rate (0.0003 vs 0.001):** with only 4 epochs, Adam with a 3x smaller step should converge more slowly, so Run B should have a *higher* final validation loss and a *lower* (or at best equal) validation accuracy / macro-F1 than Run A. Training time should be about the same, since only the step size changes.
+
+### 6.3 Baseline - Run A
+
+`uv run --locked dvc repro train` with the default settings (MLflow server on `http://127.0.0.1:5000`, experiment `bean-image-classification`).
+
+**Run A MLflow Run ID: `15ee55bab76c47a2821a86e42b1fb55f`** (status FINISHED).
+
+Checked in MLflow for Run A: the 11 required parameters (image_size 96, batch_size 32, epochs 4, learning_rate 0.001, dropout 0.3, random_state 42, augmentation_enabled False, horizontal_flip 0.5, rotation_degrees 10.0, device cpu, training_data_identity); `train_loss`, `val_loss`, `val_accuracy`, `val_macro_f1` with 4 points each (steps 1-4) and `training_seconds` = 17.9 s; the Dataset input `bean-training` (context `training`); the artifacts `run_manifest.json`, `train_summary.json`, `training_curves.png`; the model `bean-cnn` with metadata `{class_names: [angular_leaf_spot, bean_rust, healthy], image_size: 96}` and signature `float32 (-1,3,96,96) -> float32 (-1,3)`.
+
+Epochs of Run A: macro-F1 0.5562 / 0.6119 / 0.6445 / **0.6254 (final)**; final val_acc 0.6391, final val_loss 0.8324.
+
+Manifest: commit `758d90e`, `dirty: false`, `changed_files: []` (only the pipeline outputs `dvc.lock` and `reports/data_summary.json` were new, listed under `ignored_pipeline_outputs`).
+
+Note: two earlier passes of this milestone showed a wrong `dirty: true`: (1) DVC deletes the Git-tracked stage outputs before running a stage, so Git always saw changes; (2) my `git status --porcelain` parser stripped the leading space of the first line and truncated the first path. I fixed both in `provenance.py` (see Milestone 5, checked on a toy repository with a deleted output, a modified file and an untracked file), discarded those passes and replayed the milestone from a fresh MLflow database; the metrics were identical each time (training is deterministic with the fixed seed), which is itself a small repeatability check.
+
+Environment note: the lab was executed in a Linux sandbox that could not reach the PyTorch CPU wheel index, so PyTorch/torchvision 2.11.0/0.26.0 came from PyPI (CUDA build running on CPU, `CUDA available: False`) instead of the `+cpu` wheels in `uv.lock`. The manifest records the versions actually used. Re-run once with `uv sync --locked` on the lab machine to confirm the numbers.
+
+**Check 1 - rerun without any change**
+
+```
+'data/raw.dvc' didn't change, skipping
+Stage 'validate' didn't change, skipping
+Stage 'prepare' didn't change, skipping
+Stage 'train' didn't change, skipping
+Data and pipelines are up to date.
+```
+
+**Check 2 - comment added to `src/validate_data.py` (report unchanged)**
+
+```
+'data/raw.dvc' didn't change, skipping
+Running stage 'validate':
+> uv run --locked python -m src.validate_data
+Updating lock file 'dvc.lock'
+Stage 'prepare' didn't change, skipping
+Stage 'train' didn't change, skipping
+```
+
+`reports/data_quality.json` stayed byte-identical (`cmp`), so PREPARE and TRAIN were skipped. The comment stays in place.

@@ -87,3 +87,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+# Comment added for the Milestone 6 DVC check: it must not change the quality report.
