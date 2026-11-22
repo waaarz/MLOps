@@ -51,3 +51,9 @@ No. A seed only fixes the pseudo-random streams. Results can still differ across
 - The **Git remote** (GitHub) stores the code, configuration, history and the small pointer files (`dvc.yaml`, `dvc.lock`, `data/raw.dvc`) - not the heavy data.
 - The **DVC remote** (`lab-data`, the folder `../ai53-phase1-dvc-storage`) stores the actual content of the DVC-tracked files (raw images, and later processed data and model files), addressed by content hash.
 - `git push` does **not** transfer the DVC-managed raw images; they are ignored by Git, and only `dvc push` sends them to the DVC remote.
+
+## Milestone 3 - Data-quality gate
+
+`validate_dataset()` in `src/validate_data.py` now: (1) raises `FileNotFoundError` if a split folder is missing; (2) raises `RuntimeError` if the class folders differ from the three expected classes; (3) raises if a split's image count differs from the course archives (1034 / 133 / 128); (4) opens every image and calls `Image.load()` so the pixels are really decoded (a truncated/corrupt file raises Pillow's `OSError` / `UnidentifiedImageError`); (5) raises if a class has no image. Files are listed in sorted order and the report has no timestamp or absolute path, so two runs on the same data give byte-identical JSON (checked with `md5sum`: identical hashes).
+
+Results: `pytest tests/test_data_validation.py tests/test_validation_contract.py` -> `7 passed`; `python -m src.validate_data` -> `"status": "PASS"`, `total_images: 1295`, written to `reports/data_quality.json`.
