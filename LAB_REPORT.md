@@ -224,3 +224,11 @@ All three Runs are FINISHED, trained on the same data identity, with seed 42 and
 ```
 git add dvc.lock reports/ LAB_REPORT.md  # commit "Compare three training runs"
 ```
+
+## Milestone 8 - Selection and final test
+
+**Selected Run: C, `aa36785cac4b4bc795cf9d98c205f9a6`** (`batch_size` 16, other settings = baseline).
+
+- Main metric (validation, last epoch): `val_macro_f1` = **0.6349**, versus 0.6254 (A) and 0.6091 (B). The gap to A (0.0095) is above my 0.005 tie-break threshold, so no tie-break was needed; the tie-break criteria point the same way anyway (lowest `val_loss` 0.8134, equal best `val_accuracy` 0.6391).
+- Other evidence: the training curves of C show validation loss falling at every epoch; the Run is FINISHED, belongs to `bean-image-classification`, has `image_size` 96 and the current `training_data_identity`, and its `bean-cnn` model has the class order and image size in its metadata.
+- Trade-off / limitation: the lead over A is small (about 1 point of F1, i.e. a handful of validation images) with one seed and 133 images, so C is "best on this evidence" rather than demonstrably better; B and C also change only one setting each, so interactions (e.g. batch 16 with a different learning rate, or augmentation) were not explored.
