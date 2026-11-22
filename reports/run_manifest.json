@@ -5,11 +5,11 @@
       "horizontal_flip": 0.5,
       "rotation_degrees": 10.0
     },
-    "batch_size": 32,
+    "batch_size": 16,
     "dropout": 0.3,
     "epochs": 4,
     "image_size": 96,
-    "learning_rate": 0.0003
+    "learning_rate": 0.001
   },
   "data": {
     "training_data_identity": "8fa943ff6c17a3c874d2b152e9d7980602a5cd50c0d8156625bd00590a3d8c6c"
@@ -28,12 +28,12 @@
   },
   "execution": {
     "device": "cpu",
-    "mlflow_run_id": "3d40acc0260b4c7aa5f24cf5b2b2dc89",
+    "mlflow_run_id": "aa36785cac4b4bc795cf9d98c205f9a6",
     "random_state": 42
   },
   "git": {
     "changed_files": [],
-    "commit_sha": "e1fa8df878e32a65f01402a0e448fe377c744c4c",
+    "commit_sha": "9fd75efc0bdb6d3eb520cbaa31f30d77133a6c8c",
     "dirty": false,
     "ignored_pipeline_outputs": [
       "reports/run_manifest.json",

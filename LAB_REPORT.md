@@ -201,3 +201,26 @@ Running stage 'train':
 `train.learning_rate` was put back to 0.001 (Run A's value). **Exactly one change versus A: `train.batch_size` 32 -> 16.**
 
 Expectation (written before training): with batch size 16 there are twice as many optimizer updates per epoch (about 65 instead of 33), so within a fixed budget of 4 epochs the model should converge faster. I expect a lower final validation loss and a higher macro-F1 than Run A, at the cost of a slightly longer training time (smaller batches are less efficient on CPU) and noisier curves. I do not expect a large gap with a single seed and 133 validation images.
+
+### 7.2 Validation comparison (last-epoch scores, same epoch as the logged model)
+
+| Run | Controlled change | Val. Accuracy | Val. Macro-F1 | Val. loss | Training time | MLflow Run ID |
+|---|---|---|---|---|---|---|
+| A | Baseline (lr 0.001, batch 32) | 0.6391 | 0.6254 | 0.8324 | 17.9 s | `15ee55bab76c47a2821a86e42b1fb55f` |
+| B | `learning_rate` 0.0003 | 0.6165 | 0.6091 | 0.8927 | 16.2 s | `3d40acc0260b4c7aa5f24cf5b2b2dc89` |
+| C | `batch_size` 16 | 0.6391 | 0.6349 | 0.8134 | 17.6 s | `aa36785cac4b4bc795cf9d98c205f9a6` |
+
+All three Runs are FINISHED, trained on the same data identity, with seed 42 and 4 epochs; the parameters in MLflow confirm that only the intended setting differs.
+
+- **B vs A:** lower accuracy (-0.0226), lower macro-F1 (-0.0163) and higher loss (+0.0603). The prediction (slower convergence at lr 0.0003 in 4 epochs) is supported; the loss curve of B is still falling steeply at epoch 4, so B is under-trained rather than "worse" in general.
+- **C vs A:** same accuracy (0.6391), macro-F1 +0.0095 and val loss -0.0190. The prediction (faster convergence with more updates per epoch) is directionally supported, and training time was essentially unchanged (17.6 s vs 17.9 s, so my "slightly longer" guess was not confirmed). The difference is tiny: with 133 validation images, one image is 0.75 points of accuracy, and with a single seed this gap could be noise. Equal accuracy with different macro-F1 shows the two models make errors in a different class mix.
+- Absolute scores are modest (about 0.63 F1) because the CNN is small and only trained for 4 epochs; the aim of this lab is the traceability, not the best model.
+
+**Engineering checkpoint 6**
+
+- *Primary metric:* `val_macro_f1`. The three classes are almost balanced but the model errs differently across them (A and C have the same accuracy and different F1); macro-F1 averages the per-class F1 equally, so it exposes a weak class (e.g. a disease confused with another) that accuracy can hide, and it does not favour a majority class. Validation loss is used as the tie-breaker because it is more sensitive than a discrete score on 133 images.
+- *Test set only after choosing:* if the test set were used to compare candidates, selection would be tuned to it, the final score would be optimistically biased, and nothing unbiased would remain to estimate how the chosen model behaves on new data. The test split is therefore touched exactly once, by EVALUATE, for the single frozen Run.
+
+```
+git add dvc.lock reports/ LAB_REPORT.md  # commit "Compare three training runs"
+```

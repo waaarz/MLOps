@@ -133,25 +133,25 @@ stages:
         augmentation.rotation_degrees: 10
         compute.device: auto
         data.image_size: 96
-        train.batch_size: 32
+        train.batch_size: 16
         train.dropout: 0.3
         train.epochs: 4
-        train.learning_rate: 0.0003
+        train.learning_rate: 0.001
         train.random_state: 42
     outs:
     - path: models/model.pt
       hash: md5
-      md5: 512799f93958e23dbdc3959a56fd3ddc
+      md5: 2f82d568f5201697c42ceb77c05888d3
       size: 98673
     - path: reports/run_manifest.json
       hash: md5
-      md5: fdd4f85ef6abc177359079abce0896a1
-      size: 1093
+      md5: f6d2d2199c5d4688b4c99bc9eb869673
+      size: 1092
     - path: reports/train_summary.json
       hash: md5
-      md5: 293a875badbcca5570d5fcd225c544ce
-      size: 248
+      md5: f9354f95181a69b40c68476faa07e511
+      size: 247
     - path: reports/training_curves.png
       hash: md5
-      md5: 9c3cae102b5c2c91b738937d8cca140f
-      size: 112428
+      md5: 06649c810628cabc203a4d070f09c1b2
+      size: 94746
