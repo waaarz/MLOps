@@ -88,3 +88,23 @@ Answers to the design questions:
 - **Git** records the exact code, configuration (`params.yaml`, `dvc.yaml`) and their history - identified by a commit SHA.
 - **DVC** records which data and intermediate files (by content hash in `dvc.lock`/`*.dvc`) and which stage dependencies/parameters produced which outputs, and can rebuild or skip stages accordingly.
 - **MLflow** records what happened inside one training Run: parameters, per-epoch metrics, timing, artifacts, the dataset input, and the logged model with its signature - plus the run manifest linking back to the Git SHA and data identity.
+
+## Milestone 6 - Which stages run again?
+
+### 6.1 Predictions (written before running DVC)
+
+Assumption: all outputs are up to date, one change at a time, `selection.run_id` fixed.
+
+| Change | VALIDATE | PREPARE | TRAIN | EVALUATE |
+|---|---|---|---|---|
+| Change `train.learning_rate` | REUSED | REUSED | RERUN | REUSED |
+| Change `data.image_size` | REUSED | RERUN | RERUN | NEEDS UPDATE |
+| Edit `src/validate_data.py`; the quality report stays the same | RERUN | REUSED | REUSED | REUSED |
+| Edit only `README.md` | REUSED | REUSED | REUSED | REUSED |
+
+**Engineering checkpoint 5**
+
+- *Setting change (`train.learning_rate`)*: only `train` lists `train.learning_rate` under `params:`, so its recorded value in `dvc.lock` changes and TRAIN reruns. `validate` and `prepare` do not list it (they only use `data.image_size` / nothing) and `evaluate` does not list it either: it scores the fixed, already-selected MLflow Run (`selection.run_id` unchanged) and does not read `models/model.pt`, so the saved test results remain valid -> REUSED.
+- *Setting change (`data.image_size`)*: `prepare` and `train` and `evaluate` list it. PREPARE resizes the images to the new size, so its outputs change and TRAIN/EVALUATE inputs (`data/processed/...`) change as well. For EVALUATE, DVC will rerun, but the selected Run was trained at the old size, so the saved test results would no longer match and the evaluator would reject the Run -> NEEDS UPDATE (a new Run and a new `selection.run_id` are needed). VALIDATE does not read this setting -> REUSED.
+- *File edit (`src/validate_data.py`)*: it is a dependency of `validate` only, so VALIDATE reruns. It regenerates a byte-identical `reports/data_quality.json`; since this is PREPARE's only changed-candidate input and its hash is unchanged (and `data/raw` is unchanged), PREPARE, and therefore TRAIN and EVALUATE, are REUSED.
+- *File edit (`README.md`)*: it is not a dependency of any stage, so nothing reruns.
