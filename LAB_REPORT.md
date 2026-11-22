@@ -57,3 +57,22 @@ No. A seed only fixes the pseudo-random streams. Results can still differ across
 `validate_dataset()` in `src/validate_data.py` now: (1) raises `FileNotFoundError` if a split folder is missing; (2) raises `RuntimeError` if the class folders differ from the three expected classes; (3) raises if a split's image count differs from the course archives (1034 / 133 / 128); (4) opens every image and calls `Image.load()` so the pixels are really decoded (a truncated/corrupt file raises Pillow's `OSError` / `UnidentifiedImageError`); (5) raises if a class has no image. Files are listed in sorted order and the report has no timestamp or absolute path, so two runs on the same data give byte-identical JSON (checked with `md5sum`: identical hashes).
 
 Results: `pytest tests/test_data_validation.py tests/test_validation_contract.py` -> `7 passed`; `python -m src.validate_data` -> `"status": "PASS"`, `total_images: 1295`, written to `reports/data_quality.json`.
+
+## Milestone 4 - DVC pipeline (`dvc.yaml`)
+
+Four stages (`validate -> prepare -> train` and `prepare -> evaluate`). `dvc stage list` shows all four and `dvc dag` confirms that `evaluate` depends on `prepare` only, not on `train`:
+
+```
+data/raw.dvc -> validate -> prepare -> train
+                  data/raw.dvc -> prepare -> evaluate
+```
+
+Answers to the design questions:
+
+- **Should PREPARE depend on `reports/data_quality.json`?** Yes. It creates the order VALIDATE -> PREPARE: if the gate fails, VALIDATE stops and PREPARE never runs; if the report content changes, PREPARE is re-evaluated.
+- **Should PREPARE also depend directly on `data/raw`?** Yes. `prepare.py` actually reads the images; the report only says they were valid (it is the same JSON for different valid files). Without the direct dependency, replacing images with other valid ones would not trigger PREPARE.
+- **Which `params.yaml` changes make TRAIN run again?** Only the individual keys it uses: `data.image_size`, `train.batch_size/epochs/learning_rate/dropout/random_state`, `augmentation.enabled/horizontal_flip/rotation_degrees` and `compute.device`. Not `evaluation.*`, `selection.run_id` or `tracking.*`.
+- **Why does EVALUATE track `selection.run_id`?** Because it changes which model is scored. If the chosen Run changes, the saved `test_metrics.json` no longer matches and must be recomputed. (`validate_selected_run` also reads `data.image_size`, `tracking.experiment`; the loader reads `evaluation.batch_size`.)
+- **Which files are metrics?** `reports/train_summary.json` (TRAIN) and `reports/test_metrics.json` (EVALUATE). Small `reports/` files use `cache: false` so Git stores them; processed images, manifests and `models/model.pt` stay in the DVC cache.
+- Code dependencies include indirect imports: EVALUATE and TRAIN list `src/data.py` and `src/reproducibility.py` (imported through the data loader), `src/provenance.py` and `src/model.py`. `uv.lock` + `pyproject.toml` are dependencies of every stage because they define the Python environment. Dependencies point to `data/raw`, never to `data/raw.dvc`.
+- Processed data is split into `train/`, `validation/`, `test/`, `manifests/` outputs so TRAIN depends only on `train`, `validation` and the two matching CSVs, while EVALUATE depends on `test` and the manifests.

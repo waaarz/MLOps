@@ -1,0 +1,89 @@
+stages:
+  validate:
+    cmd: uv run --locked python -m src.validate_data
+    deps:
+      - data/raw
+      - src/validate_data.py
+      - uv.lock
+      - pyproject.toml
+    outs:
+      - reports/data_quality.json:
+          cache: false
+
+  prepare:
+    cmd: uv run --locked python -m src.prepare
+    deps:
+      - data/raw                    # PREPARE reads the raw images directly...
+      - reports/data_quality.json   # ...but only after the quality gate has passed
+      - src/prepare.py
+      - uv.lock
+      - pyproject.toml
+    params:
+      - data.image_size
+    outs:
+      - data/processed/train
+      - data/processed/validation
+      - data/processed/test
+      - data/processed/manifests
+      - reports/data_summary.json:
+          cache: false
+
+  train:
+    cmd: uv run --locked python -m src.train
+    deps:
+      - data/processed/train
+      - data/processed/validation
+      - data/processed/manifests/train.csv
+      - data/processed/manifests/validation.csv
+      - src/train.py
+      - src/data.py
+      - src/model.py
+      - src/provenance.py
+      - src/reproducibility.py
+      - uv.lock
+      - pyproject.toml
+    params:
+      - data.image_size
+      - train.batch_size
+      - train.epochs
+      - train.learning_rate
+      - train.dropout
+      - train.random_state
+      - augmentation.enabled
+      - augmentation.horizontal_flip
+      - augmentation.rotation_degrees
+      - compute.device
+    outs:
+      - models/model.pt
+      - reports/training_curves.png:
+          cache: false
+      - reports/run_manifest.json:
+          cache: false
+    metrics:
+      - reports/train_summary.json:
+          cache: false
+
+  evaluate:
+    cmd: uv run --locked python -m src.evaluate
+    deps:
+      - data/processed/test
+      - data/processed/manifests
+      - src/evaluate.py
+      - src/data.py
+      - src/model.py
+      - src/provenance.py
+      - src/reproducibility.py
+      - uv.lock
+      - pyproject.toml
+    params:
+      - selection.run_id
+      - data.image_size
+      - evaluation.batch_size
+      - compute.device
+      - tracking.experiment
+    outs:
+      - reports/test_confusion_matrix.png:
+          cache: false
+    metrics:
+      - reports/test_metrics.json:
+          cache: false
